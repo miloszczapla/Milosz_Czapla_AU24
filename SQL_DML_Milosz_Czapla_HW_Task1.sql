@@ -1,0 +1,20 @@
+--Task 1
+--Choose your top-3 favorite movies and add them to the 'film' table (films with the title Film1, Film2, etc - will not be taken into account and grade will be reduced)
+--Fill in rental rates with 4.99, 9.99 and 19.99 and rental durations with 1, 2 and 3 weeks respectively.
+--Add the actors who play leading roles in your favorite movies to the 'actor' and 'film_actor' tables (6 or more actors in total).  Actors with the name Actor1, Actor2, etc - will not be taken into account and grade will be reduced.
+--Add your favorite movies to any store's inventory.
+--Alter any existing customer in the database with at least 43 rental and 43 payment records. Change their personal data to yours (first name, last name, address, etc.). You can use any existing address from the "address" table. Please do not perform any updates on the "address" table, as this can impact multiple records with the same address.
+--Remove any records related to you (as a customer) from all tables except 'Customer' and 'Inventory'
+--Rent you favorite movies from the store they are in and pay for them (add corresponding records to the database to represent this activity)
+--(Note: to insert the payment_date into the table payment, you can create a new partition (see the scripts to install the training database ) or add records for the
+--first half of 2017)
+--
+--Note: 
+--All new & updated records must have 'last_update' field set to current_date.
+--Double-check your DELETEs and UPDATEs with SELECT query before committing the transaction!!! 
+--Your scripts must be rerunnable/reusable and don't produces duplicates. You can use WHERE NOT EXISTS, IF NOT EXISTS, ON CONFLICT DO NOTHING, etc.
+--Don't hardcode IDs. Instead of construction INSERT INTO … VALUES use INSERT INTO … SELECT …
+--Don't forget to add RETURNING
+--Please add comments why you chose a particular way to solve each tasks.
+--
+--
