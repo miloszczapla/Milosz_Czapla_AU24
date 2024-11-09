@@ -54,12 +54,13 @@ ORDER BY
 --to calculate revenue per store location since march 2017
 SELECT
 	sum(p.amount) AS revenue,
-	concat(a.address, a.address2) AS address
+	concat(a.address, ' ', a.address2) AS address
 FROM
 	store s
 	INNER JOIN inventory i ON i.store_id = s.store_id
 	INNER JOIN rental r ON r.inventory_id = i.inventory_id
-	INNER JOIN payment p ON p.rental_id = r.rental_id a.address_id = s.address_id --get stores addresses
+	INNER JOIN payment p ON p.rental_id = r.rental_id
+	INNER JOIN address a ON a.address_id = s.address_id --get stores addresses
 WHERE
 	p.payment_date > '01.03.2017' --filter
 GROUP BY
@@ -79,7 +80,7 @@ WITH cte_number_of_films_per_actor_since_2015 AS (
 		film f
 		INNER JOIN film_actor fa ON f.film_id = fa.film_id
 	WHERE
-		f.release_year > 2015
+		f.release_year >= 2015
 	GROUP BY
 		fa.actor_id
 	ORDER BY
@@ -185,29 +186,32 @@ GROUP BY
 --The INNER JOIN approach ensures we capture only active, revenue-generating staff, with payment_date filtering isolating transactions to 2017 only. Inner join assures
 --that revenue is calculated per staff for specific store, so it doesn't sum between stores.
 SELECT
-	s.staff_id,
-	s.first_name,
-	s.last_name,
-	sum(p.amount) AS revenue,
-	s2.store_id AS last_store
+	s.*
 FROM
-	staff s
-	INNER JOIN store s2 ON s2.store_id = s.store_id
-	INNER JOIN inventory i ON i.store_id = s2.store_id
-	INNER JOIN rental r ON r.staff_id = s.staff_id
-	INNER JOIN payment p ON p.rental_id = r.rental_id
-WHERE
-	extract(
-		year
+	(
+		SELECT
+			staff.staff_id,
+			staff.first_name,
+			staff.last_name,
+			staff.store_id AS last_store,
+			sum(p.amount) AS revenue
 		FROM
-			p.payment_date
-	) = 2017
-GROUP BY
-	s.staff_id
-ORDER BY
-	revenue DESC
-LIMIT
-	3;
+			staff
+			INNER JOIN payment p ON p.staff_id = staff.staff_id
+		WHERE
+			extract(
+				year
+				FROM
+					p.payment_date
+			) = 2017
+		GROUP BY
+			staff.staff_id
+		ORDER BY
+			revenue DESC
+		LIMIT
+			3
+	) AS s
+	INNER JOIN store s2 ON s2.store_id = s.last_store;
 
 --2. which 5 movies were rented more than others (number of rentals), and what's the expected age of the audience for these movies? to determine expected age please use 'motion picture association film rating system
 --first we want to get possible rating of filnms
@@ -239,8 +243,8 @@ GROUP BY
 	f.film_id
 ORDER BY
 	rental_count DESC
-LIMIT
-	5;
+FETCH FIRST
+	5 ROWS WITH ties;
 
 --part 3. which actors/actresses didn't act for a longer period of time than the others? 
 --the task can be interpreted in various ways, and here are a few options:
