@@ -1,0 +1,16 @@
+1. using column level security e.g.
+grant
+update
+  (title, content) on table
+
+2. identyfication - answer question "who you are?"
+authentication - indentifing + checking(by password, token ...) who you are\
+
+3.Certificate-Based Authentication (SSL/TLS):
+assword Authentication with scram-sha-256 hashing
+GSSAPI / Kerberos Authentication -- enebles SSO which is cool
+
+4.It is authentication with proxy service like Oauth, then Oauth access postgres database.
+
+It is safeier because user indirecty get access to DB.
+Services like Oauth are focused on user access, thus it is easier to manage, Oauth is responsible for managing permissions
