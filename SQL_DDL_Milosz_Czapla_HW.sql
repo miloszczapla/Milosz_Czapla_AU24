@@ -5,25 +5,31 @@
 --postgresql create databese doesn't function with if exists, but drop does
 --so I first drop database if exists and then create it, it is error free,
 --minus is that is erase database and data in it - kida brute force
---SELECT pg_terminate_backend(pid)
---FROM pg_stat_activity
---WHERE datname = 'agency' AND pid <> pg_backend_pid();
+SELECT
+       pg_terminate_backend(pid)
+FROM
+       pg_stat_activity
+WHERE
+       datname = 'agency'
+       AND pid <> pg_backend_pid();
+
 DROP DATABASE IF EXISTS agency;
 
 CREATE DATABASE agency;
 
 --remember to change database afterwards with comand below
---\c domain_name_db
+--\c agency
 --Create Schema
 CREATE SCHEMA IF NOT EXISTS political_campaign;
 
 --create types that will be handly later, similar idea with drop like in previous case. 
 --I prefer type creation over case because it is better practice in my opinion
-DROP TYPE IF EXISTS political_campaign.gender_enum;
+--I don't like CASCADE option at all but it is there to comply with task requirments
+DROP TYPE IF EXISTS political_campaign.gender_enum CASCADE;
 
 CREATE TYPE political_campaign.gender_enum AS enum ('M', 'W');
 
-DROP TYPE IF EXISTS political_campaign.martial_enum;
+DROP TYPE IF EXISTS political_campaign.martial_enum CASCADE;
 
 CREATE TYPE political_campaign.martial_enum AS enum ('Single', 'Widowed', 'Married', 'Divorced');
 
@@ -130,13 +136,13 @@ CREATE TABLE IF NOT EXISTS political_campaign.votes (
        candidature_id INT REFERENCES political_campaign.candidatures(candidature_id) NOT NULL
 );
 
---budget should be greater than 0, like in real life  
-CREATE TABLE IF NOT EXISTS political_campaign.candidatures (
+--cost should be greater than 0, like in real life  
+CREATE TABLE IF NOT EXISTS political_campaign.costs (
        id Serial PRIMARY KEY,
        candidature_id INT REFERENCES political_campaign.candidatures(candidature_id) NOT NULL,
-       cost INT CHECK (budget > 0) NOT NULL,
+       cost INT CHECK (cost > 0) NOT NULL,
        goal VARCHAR(256) NOT NULL,
-       descriprion text NOT NULL
+       description text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS political_campaign.volunteers (
@@ -535,6 +541,65 @@ WHERE
                      )
        );
 
+INSERT INTO
+       political_campaign.candidate_donor (
+              donor_id,
+              candidate_id,
+              support_value,
+              support_description
+       )
+SELECT
+       (
+              SELECT
+                     id
+              FROM
+                     political_campaign.donors
+              WHERE
+                     name = 'Sarah'
+                     AND surname = 'Blue'
+              LIMIT
+                     1
+       ) AS donor_id,
+       (
+              SELECT
+                     id
+              FROM
+                     political_campaign.candidates
+              WHERE
+                     name = 'John'
+                     AND surname = 'Doe'
+              LIMIT
+                     1
+       ) AS candidate_id,
+       50000 AS support_value,
+       'Donation for campaign ads' AS support_description
+WHERE
+       NOT EXISTS (
+              SELECT
+                     1
+              FROM
+                     political_campaign.candidate_donor
+              WHERE
+                     donor_id = (
+                            SELECT
+                                   id
+                            FROM
+                                   political_campaign.donors
+                            WHERE
+                                   name = 'Sarah'
+                                   AND surname = 'Blue'
+                     )
+                     AND candidate_id = (
+                            SELECT
+                                   id
+                            FROM
+                                   political_campaign.candidates
+                            WHERE
+                                   name = 'John'
+                                   AND surname = 'Doe'
+                     )
+       );
+
 -- Insert sample data for voters
 INSERT INTO
        political_campaign.voters (
@@ -755,6 +820,73 @@ WHERE
                                                  AND surname = 'Smith'
                                    )
                      )
+       );
+
+-- Insert sample data for costs
+INSERT INTO
+       political_campaign.costs (candidature_id, cost, goal, description)
+SELECT
+       c.candidature_id,
+       data.cost,
+       data.goal,
+       data.description
+FROM
+       (
+              SELECT
+                     candidature_id
+              FROM
+                     political_campaign.candidatures ca
+              WHERE
+                     candidate_id = (
+                            SELECT
+                                   id
+                            FROM
+                                   political_campaign.candidates
+                            WHERE
+                                   name = 'John'
+                                   AND surname = 'Doe'
+                     )
+                     AND election_id = (
+                            SELECT
+                                   id
+                            FROM
+                                   political_campaign.elections
+                            WHERE
+                                   position = 'Presidential Election'
+                            LIMIT
+                                   1
+                     )
+       ) c
+       CROSS JOIN LATERAL (
+              VALUES
+                     (
+                            10000,
+                            'Advertising',
+                            'TV and social media campaigns'
+                     ),
+                     (
+                            15000,
+                            'Staffing',
+                            'Hiring campaign staff and volunteers'
+                     ),
+                     (5000, 'Travel', 'Travel expenses for rallies'),
+                     (
+                            2000,
+                            'Miscellaneous',
+                            'Miscellaneous campaign costs'
+                     )
+       ) AS data (cost, goal, description)
+WHERE
+       NOT EXISTS (
+              SELECT
+                     1
+              FROM
+                     political_campaign.costs pc
+              WHERE
+                     pc.candidature_id = c.candidature_id
+                     AND pc.cost = data.cost
+                     AND pc.goal = data.goal
+                     AND pc.description = data.description
        );
 
 -- Insert sample data for volunteers
@@ -1174,7 +1306,7 @@ ADD
        COLUMN IF NOT EXISTS record_ts date DEFAULT current_date NOT NULL;
 
 ALTER TABLE
-       political_campaign.candidatures
+       political_campaign.costs
 ADD
        COLUMN IF NOT EXISTS record_ts date DEFAULT current_date NOT NULL;
 
